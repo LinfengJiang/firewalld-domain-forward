@@ -1,12 +1,14 @@
 import re
 import subprocess
 
+from apscheduler.schedulers.blocking import BlockingScheduler
+
 #Domain address
 domain = 'test.com'
 #Port
 port = 5000
-#TODO Check interval(seconds)
-interval = 1
+#Check interval(seconds)
+interval = 60
 #conf location
 confLoc = '/etc/firewalld/zones/public.xml'
 
@@ -14,7 +16,6 @@ confLoc = '/etc/firewalld/zones/public.xml'
 def getIP(d):
     IPadress = '0.0.0.0'
     subreturn = subprocess.Popen('ping %s -c 1' % (d), shell=True, universal_newlines=True, stdout=subprocess.PIPE)
-    # subreturn = subprocess.Popen('ping %s -n 1' % (d), shell=True, universal_newlines=True, stdout=subprocess.PIPE)
     subreturn.wait(2)
     if subreturn.poll() == 0:
         tmp = subreturn.stdout.read()
@@ -46,4 +47,15 @@ def confWirting(p):
     with open(confLoc,'w') as f:
         f.write(new_tmp)
 
-confWirting(port)
+    subp = subprocess.Popen('firewall-cmd --reload',shell=True)
+    subp.wait(2)
+    if subp.poll() == 0:
+        print(subp.communicate()[1])
+    else:
+        print("Error by reload firewall")
+
+if __name__ == '__main__':
+    #Setting Scheduler
+    sched = BlockingScheduler()
+    sched.add_job(confWirting, args = (port,), trigger = 'interval', seconds=interval)
+    sched.start()

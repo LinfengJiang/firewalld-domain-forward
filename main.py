@@ -2,11 +2,13 @@ import re
 import subprocess
 
 #Domain address
-domain = ''
+domain = 'test.com'
+#Port
+port = 5000
 #TODO Check interval(seconds)
 interval = 1
-#TODO conf location
-confLoc = '/'
+#conf location
+confLoc = '/etc/firewalld/zones/public.xml'
 
 #Use Ping to got ip address from domain
 def getIP(d):
@@ -23,4 +25,25 @@ def getIP(d):
     print(IPadress)
     return(IPadress)
 
-IPaddr = getIP(domain)
+def replacer(match):
+    return re.sub(r'to-addr="[^"]*"', 'to-addr="%s"' % (getIP(domain)), match.group(0))
+
+#Writing to conf file
+def confWirting(p):
+    with open(confLoc,'r') as f:
+        tmp = f.read()
+        new_tmp = re.sub(r'<forward-port [^>]*port="%s"[^>]*>' % (p), replacer, tmp)
+        print(new_tmp)
+
+    #Rename old file
+    subp = subprocess.Popen('mv %s %s -f' % (confLoc,confLoc+'bak'),shell=True)
+    subp.wait(2)
+    if subp.poll() == 0:
+        print(subp.communicate()[1])
+    else:
+        print("Error by rename File")
+
+    with open(confLoc,'w') as f:
+        f.write(new_tmp)
+
+confWirting(port)
